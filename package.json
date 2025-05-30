@@ -20,6 +20,7 @@
     "@payloadcms/payload-cloud": "3.40.0",
     "@payloadcms/richtext-lexical": "3.40.0",
     "@payloadcms/ui": "3.40.0",
+    "@vapi-ai/web": "^2.3.1",
     "cross-env": "^7.0.3",
     "graphql": "^16.8.1",
     "next": "15.3.0",
