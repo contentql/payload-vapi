@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
-export default function PizzaAssistant() {
+export default function DflowAssistant() {
   const [vapi, setVapi] = useState(null)
   const [status, setStatus] = useState('Ready')
   const [isConnecting, setIsConnecting] = useState(false)
@@ -12,6 +12,14 @@ export default function PizzaAssistant() {
   const [errorMessage, setErrorMessage] = useState('')
   const [isApiKeyValid, setIsApiKeyValid] = useState(true)
   const [questions, setQuestions] = useState([])
+  const [conversationUpdate, setConversationUpdate] = useState({})
+
+  // NEW: Ref to keep conversationUpdate always fresh in closures
+  const conversationRef = useRef(conversationUpdate)
+
+  useEffect(() => {
+    conversationRef.current = conversationUpdate
+  }, [conversationUpdate])
 
   const assistantOptions = {
     name: 'Survey Assistant',
@@ -57,7 +65,6 @@ Important:
     },
   }
 
-  // Initialize Vapi on client-side only
   useEffect(() => {
     const getQuestions = async () => {
       const res = await fetch('/api/questions')
@@ -72,7 +79,6 @@ Important:
       import('@vapi-ai/web').then((module) => {
         const Vapi = module.default
 
-        // Get API key from environment variables - only check once
         const apiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY || ''
 
         if (!apiKey) {
@@ -82,12 +88,10 @@ Important:
           return
         }
 
-        // Initialize Vapi
         const vapiInstance = new Vapi(apiKey)
         setVapi(vapiInstance)
         setIsApiKeyValid(true)
 
-        // Set up event listeners
         vapiInstance.on('call-start', () => {
           setIsConnecting(false)
           setIsConnected(true)
@@ -99,6 +103,8 @@ Important:
           setIsConnecting(false)
           setIsConnected(false)
           setStatus('Call ended')
+
+          console.log('Latest conversation on call-end:', conversationRef.current)
         })
 
         vapiInstance.on('speech-start', () => {
@@ -113,17 +119,21 @@ Important:
           setVolumeLevel(level)
         })
 
+        vapiInstance.on('message', (message) => {
+          if (message.type === 'conversation-update') {
+            setConversationUpdate(message)
+          }
+        })
+
         vapiInstance.on('error', (error) => {
           console.error('Vapi error:', error)
           setIsConnecting(false)
 
-          // Handle different types of errors
           if (error?.error?.message?.includes('card details')) {
             setErrorMessage(
               'Payment required. Visit the Vapi dashboard to set up your payment method.',
             )
           } else if (error?.error?.statusCode === 401 || error?.error?.statusCode === 403) {
-            // API key is invalid - update state
             setErrorMessage('API key is invalid. Please check your environment variables.')
             setIsApiKeyValid(false)
           } else {
@@ -135,7 +145,6 @@ Important:
       })
     }
 
-    // Cleanup function
     return () => {
       if (vapi) {
         vapi.stop()
@@ -143,7 +152,6 @@ Important:
     }
   }, [])
 
-  // Start call function - no need to recheck API key
   const startCall = () => {
     if (!isApiKeyValid) {
       setErrorMessage('Cannot start call: API key is invalid or missing.')
@@ -153,14 +161,12 @@ Important:
     setIsConnecting(true)
     setStatus('Connecting...')
     setErrorMessage('')
-    console.log(assistantOptions)
 
     if (questions.length > 0) {
       vapi.start(assistantOptions)
     }
   }
 
-  // End call function
   const endCall = () => {
     if (vapi) {
       vapi.stop()
@@ -187,8 +193,6 @@ Important:
         {isConnected && (
           <div style={{ marginTop: '10px' }}>
             <p>{isSpeaking ? 'Assistant is speaking' : 'Assistant is listening'}</p>
-
-            {/* Simple volume indicator */}
             <div
               style={{
                 display: 'flex',
@@ -225,7 +229,6 @@ Important:
           }}
         >
           <p>{errorMessage}</p>
-
           {errorMessage.includes('payment') && (
             <a
               href="https://dashboard.vapi.ai"
@@ -282,5 +285,3 @@ Important:
     </div>
   )
 }
-
-// Pizza assistant configuration
