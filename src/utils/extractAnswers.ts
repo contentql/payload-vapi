@@ -55,7 +55,7 @@ const extractAnswers = (conversations: any, questionsArray: any) => {
     }
 
     // Calculate similarity score
-    const totalWords = Math.max(words1.length, words2.length)
+    const totalWords = Math.min(words1.length, words2.length)
     return matchingWords / totalWords
   }
 
