@@ -105,6 +105,10 @@ Important:
           setStatus('Call ended')
 
           console.log('Latest conversation on call-end:', conversationRef.current)
+
+          // const result = extractAnswers(conversationRef.current.conversation, questions)
+
+          // console.log('final', result)
         })
 
         vapiInstance.on('speech-start', () => {
